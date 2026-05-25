@@ -12,6 +12,7 @@ dotenv.config();
 
 const app = express();
 const users = [];
+const User = require('./models/User');
 const jwtSecret = process.env.JWT_SECRET || 'tp8-dev-secret';
 
 app.use(express.json());
@@ -25,10 +26,14 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
+let isMongoConnected = false;
 if (process.env.MONGO_URI) {
   mongoose
     .connect(process.env.MONGO_URI)
-    .then(() => console.log('MongoDB connecte'))
+    .then(() => {
+      console.log('MongoDB connecte');
+      isMongoConnected = true;
+    })
     .catch((err) => console.log(err.message));
 } else {
   console.log('MONGO_URI absent: stockage en memoire active');
@@ -38,7 +43,7 @@ function createToken(user) {
   return jwt.sign({ id: user.id }, jwtSecret, { expiresIn: '1h' });
 }
 
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
@@ -48,12 +53,16 @@ function authenticate(req, res, next) {
 
   try {
     const payload = jwt.verify(token, jwtSecret);
-    const user = users.find((item) => item.id === payload.id);
 
-    if (!user) {
-      return res.status(401).json({ message: 'Utilisateur introuvable' });
+    if (isMongoConnected) {
+      const userDoc = await User.findById(payload.id).lean();
+      if (!userDoc) return res.status(401).json({ message: 'Utilisateur introuvable' });
+      req.user = { id: userDoc._id.toString(), name: userDoc.name, email: userDoc.email };
+      return next();
     }
 
+    const user = users.find((item) => item.id === payload.id);
+    if (!user) return res.status(401).json({ message: 'Utilisateur introuvable' });
     req.user = user;
     return next();
   } catch (err) {
@@ -69,8 +78,20 @@ app.post('/api/auth/register', async (req, res) => {
   }
 
   const normalizedEmail = email.toLowerCase().trim();
-  const existingUser = users.find((user) => user.email === normalizedEmail);
 
+  if (isMongoConnected) {
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) return res.status(409).json({ message: 'Email deja utilise' });
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const userDoc = new User({ name: name.trim(), email: normalizedEmail, passwordHash });
+    await userDoc.save();
+
+    const token = createToken({ id: userDoc._id.toString() });
+    return res.status(201).json({ token, user: { name: userDoc.name, email: userDoc.email } });
+  }
+
+  const existingUser = users.find((user) => user.email === normalizedEmail);
   if (existingUser) {
     return res.status(409).json({ message: 'Email deja utilise' });
   }
@@ -99,6 +120,15 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   const normalizedEmail = email.toLowerCase().trim();
+
+  if (isMongoConnected) {
+    const userDoc = await User.findOne({ email: normalizedEmail });
+    if (!userDoc) return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
+    const isValidPassword = await bcrypt.compare(password, userDoc.passwordHash);
+    if (!isValidPassword) return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
+    return res.json({ token: createToken({ id: userDoc._id.toString() }), user: { name: userDoc.name, email: userDoc.email } });
+  }
+
   const user = users.find((item) => item.email === normalizedEmail);
 
   if (!user) {
