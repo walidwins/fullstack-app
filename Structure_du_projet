@@ -1,0 +1,15 @@
+TP8/
+│
+├── backend/
+│   ├── service.js
+│   ├── models/
+│   ├── package.json
+│   └── .env (non poussé sur GitHub)
+│
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   └── package.json
+│
+├── README.md
+└── .gitignore
