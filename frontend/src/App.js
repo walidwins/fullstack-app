@@ -10,9 +10,12 @@ function RequireAuth({ children }) {
   return token ? children : <Navigate to="/login" replace />;
 }
 
-
-
 function App() {
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  };
+
   return (
     <BrowserRouter>
       <div className="app">
@@ -20,6 +23,8 @@ function App() {
           <Link to="/dashboard">Dashboard</Link>
           <Link to="/profile">Profile</Link>
           <Link to="/login">Login</Link>
+          <Link to="/signup">Signup</Link>
+          <button type="button" onClick={handleLogout}>Logout</button>
         </nav>
 
         <main>
