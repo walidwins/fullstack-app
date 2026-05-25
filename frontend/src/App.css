@@ -36,3 +36,55 @@
     transform: rotate(360deg);
   }
 }
+
+/* App layout and responsive styles */
+.topnav {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: #0b67c2;
+}
+.topnav a {
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+}
+.app main {
+  padding: 1rem;
+}
+.page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1rem;
+}
+.card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  padding: 1rem 1.25rem;
+  max-width: 720px;
+  width: 100%;
+}
+.form input {
+  display: block;
+  width: 100%;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+.form button {
+  padding: 0.5rem 1rem;
+  background: #0b67c2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.center { display: flex; justify-content:center; align-items:center; min-height:60vh }
+
+@media (max-width: 600px) {
+  .topnav { flex-direction: column; gap: 0.5rem; }
+  .card { padding: 0.75rem; }
+}
